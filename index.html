@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp-like Chat</title>
+    <style>
+        body, html {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #E5DDD5;
+    height: 100%;
+    }
+
+    .app {
+        display: flex;
+        height: 100vh;
+    }
+
+    .sidebar {
+        background-color: #2C3E50;
+        color: white;
+        width: 250px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .sidebar-header {
+        padding: 20px;
+        border-bottom: 1px solid #34495E;
+    }
+
+    .chat-list {
+        overflow-y: auto;
+        flex-grow: 1;
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .chat-item {
+        padding: 10px 20px;
+        border-bottom: 1px solid #34495E;
+        cursor: pointer;
+    }
+
+    .chat-item:hover {
+        background-color: #34495E;
+    }
+
+    .chat-area {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chat-header {
+        padding: 20px;
+        border-bottom: 1px solid #BDC3C7;
+        background-color: #3498DB;
+        color: white;
+    }
+
+    .chat-messages {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 20px;
+    }
+
+    .message {
+        padding: 10px 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        max-width: 60%;
+        clear: both;
+    }
+
+    .sent {
+        background-color: #DCF8C6;
+        color: #000;
+        float: right;
+    }
+
+    .received {
+        background-color: #FFFFFF;
+        color: #000;
+        float: left;
+    }
+
+
+    .chat-input {
+        padding: 20px;
+        background-color: #F5F5F5;
+        display: flex;
+        align-items: center;
+    }
+
+    .chat-input input {
+        flex-grow: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 20px;
+        margin-right: 10px;
+    }
+
+    .chat-input button {
+        background-color: #3498DB;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 20px;
+        cursor: pointer;
+    }
+
+    /* Responsiveness */
+    @media (max-width: 768px) {
+        .app {
+            flex-direction: column;
+        }
+
+        .sidebar, .chat-area {
+            width: 100%;
+        }
+    }
+
+    .emoji-react {
+        height: 20px;
+        width: auto;
+        vertical-align: middle;
+    }
+
+
+
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+       $(function () {
+                var socket = io();
+                var username = prompt('Please enter your name:');
+                if (username) {
+                    $('#username').text(username); 
+                }
+
+                // Send message when 'Send' button is clicked
+                $('#sendBtn').on('click', function(e) {
+                    e.preventDefault();
+                    sendMessage();
+                });
+
+                // Send message when 'Enter' key is pressed (but not with 'Shift')
+                $('.chat-input input').on('keydown', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+
+                // Function to handle sending of messages
+                function sendMessage() {
+                    let message = $('.chat-input input').val();
+                    if (message.trim() !== '') {  
+                        socket.emit('chat message', { user: username, text: message });
+                        $('.chat-input input').val('');
+                        message = replaceWithEmojis(message);
+                        $('.chat-messages').append(`<div class="message sent">${message}</div>`);
+                    }
+                }
+
+                // Handle incoming messages
+                socket.on('chat message', function(msg){
+                    if (msg.user !== username) {
+                        let displayMessage = replaceWithEmojis(`${msg.user}: ${msg.text}`);
+                        $('.chat-messages').append(`<div class="message received">${displayMessage}</div>`);
+                    }
+                });
+            });
+
+            function replaceWithEmojis(text) {
+                const emojiMap = {
+                    'react': '<img src="/images/react.png" alt="ReactJS Logo" class="emoji-react">',  // Placeholder for ReactJS icon
+                    'woah': '😲',
+                    'hey': '👋',
+                    'like': '❤️',
+                    'congratulation': '🎉'
+                };
+
+                for (let word in emojiMap) {
+                    // Use a global regex to replace all occurrences of each word
+                    let regex = new RegExp('\\b' + word + '\\b', 'gi');
+                    text = text.replace(regex, emojiMap[word]);
+                }
+
+                return text;
+            }
+
+    </script>
+
+    <!-- ... -->
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <header class="sidebar-header">
+                <h2>Chats</h2>
+            </header>
+            <ul class="chat-list">
+                <!-- This list can be used in the future to display active chats or contacts -->
+            </ul>
+        </aside>
+        <section class="chat-area">
+            <header class="chat-header">
+                <h2 id="username">Anonymous</h2> <!-- This will display the user's name -->
+            </header>
+            <div class="chat-messages">
+                <!-- Messages will be displayed here -->
+            </div>
+            <div class="chat-input">
+                <input type="text" placeholder="Type a message...">
+                <button id="sendBtn">Send</button>
+            </div>
+        </section>
+    </div>
+</html>
